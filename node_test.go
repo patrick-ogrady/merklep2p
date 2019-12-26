@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCalculateHashChildren(t *testing.T) {
+func TestCalculateHash(t *testing.T) {
 	n := Node{
 		Children: [][]byte{
 			[]byte("left"),
@@ -17,5 +17,5 @@ func TestCalculateHashChildren(t *testing.T) {
 	hash, err := n.CalculateHash()
 
 	assert.NoError(t, err)
-	assert.Equal(t, []byte("sick"), hash)
+	assert.Equal(t, []byte("sicker"), hash)
 }
