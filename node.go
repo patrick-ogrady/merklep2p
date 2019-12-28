@@ -7,8 +7,10 @@ import (
 )
 
 type Node struct {
-	Children [][]byte ",omitempty"
-	Content  []byte   ",omitempty"
+	Left  []byte ",omitempty"
+	Right []byte ",omitempty"
+
+	Content []byte ",omitempty"
 }
 
 func (n *Node) CalculateHash() ([]byte, error) {
