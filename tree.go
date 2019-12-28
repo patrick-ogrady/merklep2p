@@ -46,10 +46,61 @@ func recoverData(nodes []*Node) []byte {
 	return originalBytes
 }
 
+func buildLevel(nodes []*Node) ([]*Node, error) {
+	numLevelNodes := len(nodes) / 2
+	if len(nodes)%2 == 1 {
+		numLevelNodes++ // needed if odd number of leaves
+	}
+
+	levelNodes := make([]*Node, numLevelNodes)
+	for i := 0; i < numLevelNodes; i++ {
+		left := i * 2
+		right := i*2 + 1
+		if right >= len(nodes) {
+			right = left
+		}
+
+		leftHash, err := nodes[left].CalculateHash()
+		if err != nil {
+			return nil, err
+		}
+
+		rightHash, err := nodes[right].CalculateHash()
+		if err != nil {
+			return nil, err
+		}
+
+		levelNodes[i] = &Node{
+			Left:  leftHash,
+			Right: rightHash,
+		}
+	}
+
+	return levelNodes, nil
+}
+
 func NewTree(treeData []byte, chunkSize uint64) ([]*Node, *Node, error) {
 	if len(treeData) == 0 {
 		return nil, nil, errors.New("cannont construct tree with no content")
 	}
 
-	return nil, nil, nil
+	leaves := createLeaves(treeData, chunkSize)
+
+	allNodes := make([]*Node, len(leaves))
+	copy(allNodes, leaves)
+
+	currNodes := leaves
+	level := 0
+	for len(currNodes) > 1 {
+		levelNodes, err := buildLevel(currNodes)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		currNodes = levelNodes
+		allNodes = append(allNodes, levelNodes...)
+		level++
+	}
+
+	return allNodes, currNodes[0], nil
 }

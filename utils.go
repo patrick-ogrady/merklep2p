@@ -2,14 +2,13 @@ package merklep2p
 
 import (
 	"math/rand"
-	"time"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyz" +
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 var seededRand *rand.Rand = rand.New(
-	rand.NewSource(time.Now().UnixNano()))
+	rand.NewSource(1))
 
 func stringWithCharset(length int, charset string) string {
 	b := make([]byte, length)
