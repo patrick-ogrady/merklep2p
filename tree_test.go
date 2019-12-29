@@ -20,9 +20,13 @@ func TestCreateLeaves(t *testing.T) {
 func TestBuildLevel(t *testing.T) {
 	chunkSize := 1024
 	arbData := []byte(RandomString(chunkSize*10 + 2))
+	memStorage := NewMemStorage()
 
 	nodes := createLeaves(arbData, uint64(chunkSize))
-	levelNodes, err := buildLevel(nodes)
+	levelHashes, err := storeNodes(nodes, memStorage)
+	assert.NoError(t, err)
+
+	levelNodes, err := buildLevel(levelHashes)
 	assert.NoError(t, err)
 	assert.Equal(t, 6, len(levelNodes))
 }
@@ -30,11 +34,9 @@ func TestBuildLevel(t *testing.T) {
 func TestNewTree(t *testing.T) {
 	chunkSize := 1024
 	arbData := []byte(RandomString(chunkSize*10 + 2))
+	memStorage := NewMemStorage()
 
-	nodes, rootNode, err := NewTree(arbData, uint64(chunkSize))
+	root, err := NewTree(arbData, uint64(chunkSize), memStorage)
 	assert.NoError(t, err)
-	assert.Equal(t, 23, len(nodes))
-	rootHash, err := rootNode.CalculateHash()
-	assert.NoError(t, err)
-	assert.Equal(t, "5nzGdJMc7vU17k7Mkgw2RTZHveKs2RVVzVTuMzfeq5i6", base58.Encode(rootHash))
+	assert.Equal(t, "5nzGdJMc7vU17k7Mkgw2RTZHveKs2RVVzVTuMzfeq5i6", base58.Encode(root))
 }

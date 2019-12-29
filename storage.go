@@ -1,6 +1,6 @@
 package merklep2p
 
 type Storage interface {
-	Put(*Node) error
-	Get([]byte) *Node
+	Put([]byte) ([]byte, error)
+	Get([]byte) ([]byte, error)
 }

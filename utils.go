@@ -1,6 +1,7 @@
 package merklep2p
 
 import (
+	"crypto/sha256"
 	"math/rand"
 )
 
@@ -20,4 +21,13 @@ func stringWithCharset(length int, charset string) string {
 
 func RandomString(length int) string {
 	return stringWithCharset(length, charset)
+}
+
+func CalculateHash(data []byte) ([]byte, error) {
+	h := sha256.New()
+	if _, err := h.Write(data); err != nil {
+		return nil, err
+	}
+
+	return h.Sum(nil), nil
 }

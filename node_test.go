@@ -3,18 +3,18 @@ package merklep2p
 import (
 	"testing"
 
-	"github.com/btcsuite/btcutil/base58"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCalculateHash(t *testing.T) {
-	n := Node{
+func TestExportImport(t *testing.T) {
+	node := &Node{
 		Left:  []byte("left"),
 		Right: []byte("right"),
 	}
 
-	hash, err := n.CalculateHash()
+	nodeData := node.Bytes()
+	recoveredNode, err := RestoreNode(nodeData)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "3VNzeWnMPADdMM2fcfrQxWex2nHupwvvGA1egGwaSKFM", base58.Encode(hash))
+	assert.Equal(t, node, recoveredNode)
 }

@@ -1,33 +1,35 @@
 package merklep2p
 
 import (
+	"errors"
+
 	"github.com/btcsuite/btcutil/base58"
 )
 
 type MemStorage struct {
-	store map[string]*Node
+	store map[string][]byte
 }
 
-func NewMemStorage() *MemStorage {
+func NewMemStorage() Storage {
 	return &MemStorage{
-		store: make(map[string]*Node),
+		store: make(map[string][]byte),
 	}
 }
 
-func (m *MemStorage) Put(node *Node) error {
-	hash, err := node.CalculateHash()
+func (m *MemStorage) Put(data []byte) ([]byte, error) {
+	hash, err := CalculateHash(data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	m.store[base58.Encode(hash)] = node
-	return nil
+	m.store[base58.Encode(hash)] = data
+	return hash, nil
 }
 
-func (m *MemStorage) Get(nodeHash []byte) *Node {
-	if val, ok := m.store[base58.Encode(nodeHash)]; ok {
-		return val
+func (m *MemStorage) Get(hash []byte) ([]byte, error) {
+	if val, ok := m.store[base58.Encode(hash)]; ok {
+		return val, nil
 	}
 
-	return nil
+	return nil, errors.New("hash not found")
 }

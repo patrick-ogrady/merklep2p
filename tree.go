@@ -46,9 +46,9 @@ func recoverData(nodes []*Node) []byte {
 	return originalBytes
 }
 
-func buildLevel(nodes []*Node) ([]*Node, error) {
-	numLevelNodes := len(nodes) / 2
-	if len(nodes)%2 == 1 {
+func buildLevel(nodeHashes [][]byte) ([]*Node, error) {
+	numLevelNodes := len(nodeHashes) / 2
+	if len(nodeHashes)%2 == 1 {
 		numLevelNodes++ // needed if odd number of leaves
 	}
 
@@ -56,51 +56,58 @@ func buildLevel(nodes []*Node) ([]*Node, error) {
 	for i := 0; i < numLevelNodes; i++ {
 		left := i * 2
 		right := i*2 + 1
-		if right >= len(nodes) {
+		if right >= len(nodeHashes) {
 			right = left
 		}
 
-		leftHash, err := nodes[left].CalculateHash()
-		if err != nil {
-			return nil, err
-		}
-
-		rightHash, err := nodes[right].CalculateHash()
-		if err != nil {
-			return nil, err
-		}
-
 		levelNodes[i] = &Node{
-			Left:  leftHash,
-			Right: rightHash,
+			Left:  nodeHashes[left],
+			Right: nodeHashes[right],
 		}
 	}
 
 	return levelNodes, nil
 }
 
-func NewTree(treeData []byte, chunkSize uint64) ([]*Node, *Node, error) {
+func storeNodes(nodes []*Node, storage Storage) ([][]byte, error) {
+	nodeHashes := make([][]byte, len(nodes))
+	for i, node := range nodes {
+		nodeHash, err := storage.Put(node.Bytes())
+		if err != nil {
+			return nil, err
+		}
+
+		nodeHashes[i] = nodeHash
+	}
+
+	return nodeHashes, nil
+}
+
+func NewTree(treeData []byte, chunkSize uint64, storage Storage) ([]byte, error) {
 	if len(treeData) == 0 {
-		return nil, nil, errors.New("cannont construct tree with no content")
+		return nil, errors.New("cannont construct tree with no content")
 	}
 
 	leaves := createLeaves(treeData, chunkSize)
+	currHashes, err := storeNodes(leaves, storage)
+	if err != nil {
+		return nil, err
+	}
 
-	allNodes := make([]*Node, len(leaves))
-	copy(allNodes, leaves)
-
-	currNodes := leaves
 	level := 0
-	for len(currNodes) > 1 {
-		levelNodes, err := buildLevel(currNodes)
+	for len(currHashes) > 1 {
+		levelNodes, err := buildLevel(currHashes)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
-		currNodes = levelNodes
-		allNodes = append(allNodes, levelNodes...)
+		currHashes, err = storeNodes(levelNodes, storage)
+		if err != nil {
+			return nil, err
+		}
+
 		level++
 	}
 
-	return allNodes, currNodes[0], nil
+	return currHashes[0], nil
 }
