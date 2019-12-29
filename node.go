@@ -1,8 +1,6 @@
 package merklep2p
 
 import (
-	"crypto/sha256"
-
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -13,16 +11,21 @@ type Node struct {
 	Content []byte ",omitempty"
 }
 
-func (n *Node) CalculateHash() ([]byte, error) {
-	data, err := bson.Marshal(n)
+func RestoreNode(data []byte) (*Node, error) {
+	node := &Node{}
+	err := bson.Unmarshal(data, node)
 	if err != nil {
 		return nil, err
 	}
 
-	h := sha256.New()
-	if _, err := h.Write(data); err != nil {
-		return nil, err
+	return node, nil
+}
+
+func (n *Node) Bytes() []byte {
+	data, err := bson.Marshal(n)
+	if err != nil {
+		panic(err)
 	}
 
-	return h.Sum(nil), nil
+	return data
 }
