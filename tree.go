@@ -127,36 +127,37 @@ func nodeFromHash(hash []byte, storage Storage) (*Node, error) {
 	return node, nil
 }
 
-func recoverLevel(nodes []*Node, storage Storage) ([]*Node, error) {
-	nextLevelNodes := make([]*Node, 0)
+func levelHashes(nodes []*Node) [][]byte {
+	levelHashes := make([][]byte, 0)
 	for _, node := range nodes {
-		leftData, err := storage.Get(node.Left)
-		if err != nil {
-			return nil, err
-		}
-
-		leftNode, err := RestoreNode(leftData)
-		if err != nil {
-			return nil, err
-		}
-
-		nextLevelNodes = append(nextLevelNodes, leftNode)
-
-		if bytes.Compare(node.Right, node.Left) == 0 {
+		levelHashes = append(levelHashes, node.Left)
+		if bytes.Compare(node.Left, node.Right) == 0 {
 			continue
 		}
 
-		rightData, err := storage.Get(node.Right)
+		levelHashes = append(levelHashes, node.Right)
+	}
+
+	return levelHashes
+}
+
+func recoverLevel(nodes []*Node, storage Storage) ([]*Node, error) {
+	nextLevelHashes := levelHashes(nodes)
+	nextLevelNodes := make([]*Node, len(nextLevelHashes))
+
+	// TODO: Add multithreading to recovery
+	for i, nodeHash := range nextLevelHashes {
+		nodeData, err := storage.Get(nodeHash)
 		if err != nil {
 			return nil, err
 		}
 
-		rightNode, err := RestoreNode(rightData)
+		node, err := RestoreNode(nodeData)
 		if err != nil {
 			return nil, err
 		}
 
-		nextLevelNodes = append(nextLevelNodes, rightNode)
+		nextLevelNodes[i] = node
 	}
 
 	return nextLevelNodes, nil
