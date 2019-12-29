@@ -31,7 +31,7 @@ func TestBuildLevel(t *testing.T) {
 	assert.Equal(t, 6, len(levelNodes))
 }
 
-func TestNewTree(t *testing.T) {
+func TestCreateRecoverTree(t *testing.T) {
 	chunkSize := 1024
 	arbData := []byte(RandomString(chunkSize*10 + 2))
 	memStorage := NewMemStorage()
@@ -39,4 +39,8 @@ func TestNewTree(t *testing.T) {
 	root, err := NewTree(arbData, uint64(chunkSize), memStorage)
 	assert.NoError(t, err)
 	assert.Equal(t, "5nzGdJMc7vU17k7Mkgw2RTZHveKs2RVVzVTuMzfeq5i6", base58.Encode(root))
+
+	recoveredData, err := RecoverTree(root, memStorage)
+	assert.NoError(t, err)
+	assert.Equal(t, arbData, recoveredData)
 }

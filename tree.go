@@ -1,6 +1,7 @@
 package merklep2p
 
 import (
+	"bytes"
 	"errors"
 )
 
@@ -110,4 +111,70 @@ func NewTree(treeData []byte, chunkSize uint64, storage Storage) ([]byte, error)
 	}
 
 	return currHashes[0], nil
+}
+
+func nodeFromHash(hash []byte, storage Storage) (*Node, error) {
+	nodeData, err := storage.Get(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	node, err := RestoreNode(nodeData)
+	if err != nil {
+		return nil, err
+	}
+
+	return node, nil
+}
+
+func recoverLevel(nodes []*Node, storage Storage) ([]*Node, error) {
+	nextLevelNodes := make([]*Node, 0)
+	for _, node := range nodes {
+		leftData, err := storage.Get(node.Left)
+		if err != nil {
+			return nil, err
+		}
+
+		leftNode, err := RestoreNode(leftData)
+		if err != nil {
+			return nil, err
+		}
+
+		nextLevelNodes = append(nextLevelNodes, leftNode)
+
+		if bytes.Compare(node.Right, node.Left) == 0 {
+			continue
+		}
+
+		rightData, err := storage.Get(node.Right)
+		if err != nil {
+			return nil, err
+		}
+
+		rightNode, err := RestoreNode(rightData)
+		if err != nil {
+			return nil, err
+		}
+
+		nextLevelNodes = append(nextLevelNodes, rightNode)
+	}
+
+	return nextLevelNodes, nil
+}
+
+func RecoverTree(root []byte, storage Storage) ([]byte, error) {
+	rootNode, err := nodeFromHash(root, storage)
+	if err != nil {
+		return nil, err
+	}
+
+	currNodes := []*Node{rootNode}
+	for currNodes[0].Content == nil {
+		currNodes, err = recoverLevel(currNodes, storage)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return recoverData(currNodes), nil
 }
