@@ -2,6 +2,7 @@ package merklep2p
 
 import (
 	"bytes"
+	"context"
 	"errors"
 )
 
@@ -70,10 +71,10 @@ func buildLevel(nodeHashes [][]byte) ([]*Node, error) {
 	return levelNodes, nil
 }
 
-func storeNodes(nodes []*Node, storage Storage) ([][]byte, error) {
+func storeNodes(ctx context.Context, nodes []*Node, storage Storage) ([][]byte, error) {
 	nodeHashes := make([][]byte, len(nodes))
 	for i, node := range nodes {
-		nodeHash, err := storage.Put(node.Bytes())
+		nodeHash, err := storage.Put(ctx, node.Bytes())
 		if err != nil {
 			return nil, err
 		}
@@ -84,13 +85,13 @@ func storeNodes(nodes []*Node, storage Storage) ([][]byte, error) {
 	return nodeHashes, nil
 }
 
-func NewTree(treeData []byte, chunkSize uint64, storage Storage) ([]byte, error) {
+func NewTree(ctx context.Context, treeData []byte, chunkSize uint64, storage Storage) ([]byte, error) {
 	if len(treeData) == 0 {
 		return nil, errors.New("cannont construct tree with no content")
 	}
 
 	leaves := createLeaves(treeData, chunkSize)
-	currHashes, err := storeNodes(leaves, storage)
+	currHashes, err := storeNodes(ctx, leaves, storage)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +103,7 @@ func NewTree(treeData []byte, chunkSize uint64, storage Storage) ([]byte, error)
 			return nil, err
 		}
 
-		currHashes, err = storeNodes(levelNodes, storage)
+		currHashes, err = storeNodes(ctx, levelNodes, storage)
 		if err != nil {
 			return nil, err
 		}
@@ -113,8 +114,8 @@ func NewTree(treeData []byte, chunkSize uint64, storage Storage) ([]byte, error)
 	return currHashes[0], nil
 }
 
-func nodeFromHash(hash []byte, storage Storage) (*Node, error) {
-	nodeData, err := storage.Get(hash)
+func nodeFromHash(ctx context.Context, hash []byte, storage Storage) (*Node, error) {
+	nodeData, err := storage.Get(ctx, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -141,13 +142,13 @@ func levelHashes(nodes []*Node) [][]byte {
 	return levelHashes
 }
 
-func recoverLevel(nodes []*Node, storage Storage) ([]*Node, error) {
+func recoverLevel(ctx context.Context, nodes []*Node, storage Storage) ([]*Node, error) {
 	nextLevelHashes := levelHashes(nodes)
 	nextLevelNodes := make([]*Node, len(nextLevelHashes))
 
 	// TODO: Add multithreading to recovery
 	for i, nodeHash := range nextLevelHashes {
-		nodeData, err := storage.Get(nodeHash)
+		nodeData, err := storage.Get(ctx, nodeHash)
 		if err != nil {
 			return nil, err
 		}
@@ -163,15 +164,15 @@ func recoverLevel(nodes []*Node, storage Storage) ([]*Node, error) {
 	return nextLevelNodes, nil
 }
 
-func RecoverTree(root []byte, storage Storage) ([]byte, error) {
-	rootNode, err := nodeFromHash(root, storage)
+func RecoverTree(ctx context.Context, root []byte, storage Storage) ([]byte, error) {
+	rootNode, err := nodeFromHash(ctx, root, storage)
 	if err != nil {
 		return nil, err
 	}
 
 	currNodes := []*Node{rootNode}
 	for currNodes[0].Content == nil {
-		currNodes, err = recoverLevel(currNodes, storage)
+		currNodes, err = recoverLevel(ctx, currNodes, storage)
 		if err != nil {
 			return nil, err
 		}
