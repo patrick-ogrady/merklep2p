@@ -1,6 +1,7 @@
 package merklep2p
 
 import (
+	"context"
 	"errors"
 
 	"github.com/btcsuite/btcutil/base58"
@@ -16,7 +17,7 @@ func NewMemStorage() Storage {
 	}
 }
 
-func (m *MemStorage) Put(data []byte) ([]byte, error) {
+func (m *MemStorage) Put(ctx context.Context, data []byte) ([]byte, error) {
 	hash, err := CalculateHash(data)
 	if err != nil {
 		return nil, err
@@ -26,7 +27,7 @@ func (m *MemStorage) Put(data []byte) ([]byte, error) {
 	return hash, nil
 }
 
-func (m *MemStorage) Get(hash []byte) ([]byte, error) {
+func (m *MemStorage) Get(ctx context.Context, hash []byte) ([]byte, error) {
 	if val, ok := m.store[base58.Encode(hash)]; ok {
 		return val, nil
 	}
