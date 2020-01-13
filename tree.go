@@ -1,7 +1,6 @@
 package merklep2p
 
 import (
-	"bytes"
 	"context"
 	"errors"
 )
@@ -48,23 +47,22 @@ func recoverData(nodes []*Node) []byte {
 	return originalBytes
 }
 
-func buildLevel(nodeHashes [][]byte) ([]*Node, error) {
-	numLevelNodes := len(nodeHashes) / 2
-	if len(nodeHashes)%2 == 1 {
+func buildLevel(nodeHashes [][]byte, children uint64) ([]*Node, error) {
+	numLevelNodes := uint64(len(nodeHashes)) / children
+	if uint64(len(nodeHashes))%children != 0 {
 		numLevelNodes++ // needed if odd number of leaves
 	}
 
 	levelNodes := make([]*Node, numLevelNodes)
-	for i := 0; i < numLevelNodes; i++ {
-		left := i * 2
-		right := i*2 + 1
-		if right >= len(nodeHashes) {
-			right = left
+	for i := uint64(0); i < numLevelNodes; i++ {
+		minSlice := i * children
+		maxSlice := minSlice + children
+		if maxSlice >= uint64(len(nodeHashes)) {
+			maxSlice = uint64(len(nodeHashes))
 		}
 
 		levelNodes[i] = &Node{
-			Left:  nodeHashes[left],
-			Right: nodeHashes[right],
+			Children: nodeHashes[minSlice:maxSlice],
 		}
 	}
 
@@ -85,9 +83,13 @@ func storeNodes(ctx context.Context, nodes []*Node, storage Storage) ([][]byte, 
 	return nodeHashes, nil
 }
 
-func NewTree(ctx context.Context, treeData []byte, chunkSize uint64, storage Storage) ([]byte, error) {
+func NewTree(ctx context.Context, treeData []byte, chunkSize uint64, children uint64, storage Storage) ([]byte, error) {
 	if len(treeData) == 0 {
-		return nil, errors.New("cannont construct tree with no content")
+		return nil, errors.New("cannot construct tree with no content")
+	}
+
+	if children < 2 {
+		return nil, errors.New("must have at least 2 children in nodes")
 	}
 
 	leaves := createLeaves(treeData, chunkSize)
@@ -98,7 +100,7 @@ func NewTree(ctx context.Context, treeData []byte, chunkSize uint64, storage Sto
 
 	level := 0
 	for len(currHashes) > 1 {
-		levelNodes, err := buildLevel(currHashes)
+		levelNodes, err := buildLevel(currHashes, children)
 		if err != nil {
 			return nil, err
 		}
@@ -131,12 +133,9 @@ func nodeFromHash(ctx context.Context, hash []byte, storage Storage) (*Node, err
 func levelHashes(nodes []*Node) [][]byte {
 	levelHashes := make([][]byte, 0)
 	for _, node := range nodes {
-		levelHashes = append(levelHashes, node.Left)
-		if bytes.Compare(node.Left, node.Right) == 0 {
-			continue
+		for _, hash := range node.Children {
+			levelHashes = append(levelHashes, hash)
 		}
-
-		levelHashes = append(levelHashes, node.Right)
 	}
 
 	return levelHashes

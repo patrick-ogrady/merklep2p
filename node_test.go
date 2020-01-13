@@ -8,8 +8,7 @@ import (
 
 func TestExportImport(t *testing.T) {
 	node := &Node{
-		Left:  []byte("left"),
-		Right: []byte("right"),
+		Children: [][]byte{[]byte("left"), []byte("right")},
 	}
 
 	nodeData := node.Bytes()
