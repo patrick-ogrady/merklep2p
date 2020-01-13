@@ -5,8 +5,7 @@ import (
 )
 
 type Node struct {
-	Left  []byte ",omitempty"
-	Right []byte ",omitempty"
+	Children [][]byte ",omitempty"
 
 	Content []byte ",omitempty"
 }

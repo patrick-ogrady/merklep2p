@@ -18,8 +18,9 @@ func TestCreateLeaves(t *testing.T) {
 	assert.Equal(t, arbData, recoveredData)
 }
 
-func TestBuildLevel(t *testing.T) {
+func TestCreateRecoverLevel(t *testing.T) {
 	chunkSize := 1024
+	children := 2
 	arbData := []byte(RandomString(chunkSize*10 + 2))
 	memStorage := NewMemStorage()
 	ctx := context.Background()
@@ -28,20 +29,24 @@ func TestBuildLevel(t *testing.T) {
 	levelHashes, err := storeNodes(ctx, nodes, memStorage)
 	assert.NoError(t, err)
 
-	levelNodes, err := buildLevel(levelHashes)
+	levelNodes, err := buildLevel(levelHashes, uint64(children))
 	assert.NoError(t, err)
-	assert.Equal(t, 6, len(levelNodes))
+
+	recoveredLeaves, err := recoverLevel(ctx, levelNodes, memStorage)
+	assert.NoError(t, err)
+	assert.Equal(t, arbData, recoverData(recoveredLeaves))
 }
 
 func TestCreateRecoverTree(t *testing.T) {
 	chunkSize := 1024
+	children := 2
 	arbData := []byte(RandomString(chunkSize*10 + 2))
 	memStorage := NewMemStorage()
 	ctx := context.Background()
 
-	root, err := NewTree(ctx, arbData, uint64(chunkSize), memStorage)
+	root, err := NewTree(ctx, arbData, uint64(chunkSize), uint64(children), memStorage)
 	assert.NoError(t, err)
-	assert.Equal(t, "5nzGdJMc7vU17k7Mkgw2RTZHveKs2RVVzVTuMzfeq5i6", base58.Encode(root))
+	assert.Equal(t, "B5CuNQ58N5tXT7sqBmbabiJa4HgR9aiwCcvCm9kpDRvc", base58.Encode(root))
 
 	recoveredData, err := RecoverTree(ctx, root, memStorage)
 	assert.NoError(t, err)
